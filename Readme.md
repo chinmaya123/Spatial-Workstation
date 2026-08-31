@@ -85,6 +85,7 @@ HTML5 Canvas 2D: Responsive candlestick rendering and vector contagion flow simu
 Web Audio API: Synthesized procedural sound effects and spatial ambience.
 
 📂 Project Structure
+
 ```
 ├── Spatial_WorkstationApp.swift     # visionOS App entry point & WindowGroup scene definitions
 ├── ContentView.swift                # Native visionOS container, ornaments, and glass styling

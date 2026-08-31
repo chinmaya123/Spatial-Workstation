@@ -1,0 +1,2009 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VisionOS Spatial Trading Workstation</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+  <!-- Three.js Graphics Engine (r128) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            glass: {
+              100: 'rgba(255, 255, 255, 0.05)',
+              200: 'rgba(255, 255, 255, 0.08)',
+              300: 'rgba(255, 255, 255, 0.12)',
+              border: 'rgba(255, 255, 255, 0.15)',
+              hover: 'rgba(255, 255, 255, 0.18)',
+            },
+             Global: {
+              blue: '#005596',
+              cyan: '#00a3e0',
+              gold: '#f2a900',
+              emerald: '#10b981',
+              rose: '#f43f5e',
+              purple: '#a855f7'
+            }
+          },
+          boxShadow: {
+            'vision': '0 20px 50px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.2)',
+            'glow-cyan': '0 0 20px rgba(0, 163, 224, 0.35)',
+            'glow-purple': '0 0 25px rgba(168, 85, 247, 0.4)'
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      user-select: none;
+      background: radial-gradient(circle at 50% 20%, #0f172a 0%, #020617 100%);
+      overflow: hidden;
+    }
+
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.65);
+      backdrop-filter: blur(24px);
+      -webkit-backdrop-filter: blur(24px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      box-shadow: 0 12px 32px 0 rgba(0, 0, 0, 0.37);
+    }
+
+    .glass-panel-interactive {
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .glass-panel-interactive:hover {
+      background: rgba(30, 41, 59, 0.75);
+      border-color: rgba(255, 255, 255, 0.25);
+      transform: translateY(-2px);
+      box-shadow: 0 16px 40px 0 rgba(0, 0, 0, 0.5), 0 0 20px rgba(0, 163, 224, 0.2);
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 4px;
+      height: 4px;
+    }
+    ::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.2);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 255, 255, 0.4);
+    }
+
+    .depth-bar-bid {
+      background: linear-gradient(90deg, rgba(16, 185, 129, 0.05) 0%, rgba(16, 185, 129, 0.25) 100%);
+    }
+    .depth-bar-ask {
+      background: linear-gradient(90deg, rgba(244, 63, 94, 0.25) 0%, rgba(244, 63, 94, 0.05) 100%);
+    }
+
+    /* Pulse Animations */
+    @keyframes pulse-ring {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.05); opacity: 0.4; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+    .animate-pulse-ring {
+      animation: pulse-ring 3s infinite ease-in-out;
+    }
+  </style>
+</head>
+
+<body class="h-screen w-screen flex flex-col antialiased text-slate-100 overflow-hidden">
+
+  <header class="h-16 px-6 flex items-center justify-between border-b border-white/10 bg-slate-950/80 backdrop-blur-xl z-50 shrink-0">
+    <!-- Left:Brand & Spatial Title -->
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2">
+        <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-cyan-600 via-blue-600 to-indigo-600 flex items-center justify-center font-black text-white text-xs shadow-glow-cyan">
+              Global
+        </div>
+        <div>
+          <h1 class="text-sm font-bold tracking-wider text-white flex items-center gap-2">
+            SPATIAL WORKSTATION
+            <span class="text-[9px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 font-mono">visionOS 2.0</span>
+          </h1>
+          <p class="text-[10px] text-slate-400 font-mono">Level 2/3 Feed</p>
+        </div>
+      </div>
+
+      <div class="h-6 w-px bg-white/10 mx-2"></div>
+
+      <!--     Global Contract Dropdown Selector -->
+      <div class="relative">
+        <select id="contractSelect" onchange="onContractChange(this.value)" class="bg-slate-900/90 border border-white/20 text-cyan-300 text-xs font-mono font-bold rounded-xl px-3 py-1.5 focus:outline-none focus:border-cyan-400 cursor-pointer shadow-inner">
+          <option value="ES_F">/ES - E-mini S&amp;P 500 Futures</option>
+          <option value="NQ_F">/NQ - E-mini Nasdaq-100 Futures</option>
+          <option value="BTC_F">/BTC - Bitcoin Futures</option>
+          <option value="CL_F">/CL - Crude Oil Futures</option>
+          <option value="GC_F">/GC - Gold Futures</option>
+          <option value="ZN_F">/ZN - 10-Yr US Treasury Note</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Center: Main Spatial Navigation Tabs & Multi-Window Launcher -->
+    <nav class="flex items-center gap-1.5 bg-slate-900/80 p-1 rounded-2xl border border-white/10">
+      <button id="nav-hub" onclick="switchSpace('hub')" class="px-4 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 text-white bg-white/15 shadow">
+        <i class="fa-solid fa-shapes text-cyan-400"></i>
+        <span>Spatial Hub</span>
+      </button>
+      <button id="nav-workstation" onclick="launchSpatialWindow('workstation')" class="px-4 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 text-slate-400 hover:text-white hover:bg-white/5">
+        <i class="fa-solid fa-chart-candlestick text-emerald-400"></i>
+        <span>Workstation</span>
+      </button>
+      <button id="nav-pit" onclick="launchSpatialWindow('pit')" class="px-4 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 text-slate-400 hover:text-white hover:bg-white/5">
+        <i class="fa-solid fa-users-rays text-amber-400"></i>
+        <span>3D Pit</span>
+      </button>
+      <button id="nav-shockwave" onclick="launchSpatialWindow('shockwave')" class="px-4 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 text-slate-400 hover:text-white hover:bg-white/5">
+        <i class="fa-solid fa-volcano text-purple-400"></i>
+        <span>Shockwave</span>
+      </button>
+    </nav>
+
+    <!-- Right: Stats Header & AI Copilot Launcher -->
+    <div class="flex items-center gap-4">
+      <div class="text-right hidden md:block">
+        <div id="hdr-price" class="text-xs font-mono font-bold text-emerald-400">5,842.25</div>
+        <div id="hdr-change" class="text-[10px] font-mono text-emerald-500">+18.50 (+0.32%)</div>
+      </div>
+
+      <button onclick="toggleAudio()" id="audioBtn" class="w-8 h-8 rounded-xl bg-slate-900 border border-white/15 text-slate-300 hover:text-white flex items-center justify-center transition-colors">
+        <i class="fa-solid fa-volume-high text-xs"></i>
+      </button>
+
+      <button onclick="openCopilotModal()" class="px-3 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 text-white text-xs font-semibold flex items-center gap-2 hover:brightness-110 shadow-glow-purple transition-all">
+        <i class="fa-solid fa-wand-magic-sparkles text-purple-200"></i>
+        <span>Copilot</span>
+      </button>
+    </div>
+  </header>
+
+  <main class="flex-1 relative overflow-hidden p-4">
+
+    <!-- ====================================================================
+         VIEW 0: SPATIAL LAUNCHPAD HUB
+         ==================================================================== -->
+    <section id="space-hub" class="h-full w-full flex flex-col justify-center items-center max-w-7xl mx-auto px-4">
+      <div class="text-center mb-10">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs font-mono mb-3">
+          <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+          APPLE VISIONPRO SPATIAL SUITE
+        </div>
+        <h2 class="text-3xl md:text-4xl font-extrabold tracking-tight text-white mb-2">Select Your Trading Environment</h2>
+        <p class="text-sm text-slate-400 max-w-xl mx-auto">Explore market data in 3D. Step onto a virtual trading floor, view buyer and seller demand in 3D, and see how major world events ripple across markets.</p>
+      </div>
+
+      <!-- 3 Primary Spatial Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
+        
+        <!-- Card 1: Spatial Workstation -->
+        <div onclick="launchSpatialWindow('workstation')" class="glass-panel glass-panel-interactive p-6 rounded-3xl flex flex-col justify-between cursor-pointer group relative overflow-hidden">
+          <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-cyan-500/10 rounded-full blur-3xl group-hover:bg-cyan-500/20 transition-all"></div>
+          <div>
+            <div class="w-12 h-12 rounded-2xl bg-cyan-500/20 border border-cyan-500/30 text-cyan-400 flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition-transform shadow-glow-cyan">
+              <i class="fa-solid fa-cubes-stacked"></i>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2 group-hover:text-cyan-300 transition-colors">Spatial Workstation</h3>
+            <p class="text-xs text-slate-400 leading-relaxed mb-4">Your main 3D trading view. Watch market prices update live, see buyer and seller demand as 3D towers, and easily place test trades.</p>
+            
+            <div class="space-y-2 mb-6">
+              <div class="flex items-center justify-between text-[11px] text-slate-300 bg-white/5 px-2.5 py-1.5 rounded-lg">
+                <span><i class="fa-solid fa-check text-cyan-400 mr-2"></i>Live Price Graphs</span>
+                <span class="font-mono text-slate-400">Easy 3D View</span>
+              </div>
+              <div class="flex items-center justify-between text-[11px] text-slate-300 bg-white/5 px-2.5 py-1.5 rounded-lg">
+                <span><i class="fa-solid fa-check text-cyan-400 mr-2"></i>3D Buying &amp; Selling Towers</span>
+                <span class="font-mono text-slate-400">Visual Depth</span>
+              </div>
+              <div class="flex items-center justify-between text-[11px] text-slate-300 bg-white/5 px-2.5 py-1.5 rounded-lg">
+                <span><i class="fa-solid fa-check text-cyan-400 mr-2"></i>Test Trading Desk</span>
+                <span class="font-mono text-slate-400">Instant Orders</span>
+              </div>
+            </div>
+          </div>
+
+          <button class="w-full py-2.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500 text-cyan-300 hover:text-slate-950 font-bold text-xs border border-cyan-500/40 transition-all flex items-center justify-center gap-2">
+            <span>Open Spatial Window</span>
+            <i class="fa-solid fa-up-right-from-square text-xs"></i>
+          </button>
+        </div>
+
+        <!-- Card 2: 3D Open Outcry Pit -->
+        <div onclick="launchSpatialWindow('pit')" class="glass-panel glass-panel-interactive p-6 rounded-3xl flex flex-col justify-between cursor-pointer group relative overflow-hidden">
+          <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-amber-500/10 rounded-full blur-3xl group-hover:bg-amber-500/20 transition-all"></div>
+          <div>
+            <div class="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/30 text-amber-400 flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition-transform">
+              <i class="fa-solid fa-users-rays"></i>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2 group-hover:text-amber-300 transition-colors">3D Open Outcry Pit</h3>
+            <p class="text-xs text-slate-400 leading-relaxed mb-4">Step onto a virtual trading floor! Watch 3D traders walk around, make authentic hand gestures, shout price quotes, and hear real floor sounds.</p>
+            
+            <div class="space-y-2 mb-6">
+              <div class="flex items-center justify-between text-[11px] text-slate-300 bg-white/5 px-2.5 py-1.5 rounded-lg">
+                <span><i class="fa-solid fa-check text-amber-400 mr-2"></i>Animated 3D Floor Traders</span>
+                <span class="font-mono text-slate-400">Walking Avatars</span>
+              </div>
+              <div class="flex items-center justify-between text-[11px] text-slate-300 bg-white/5 px-2.5 py-1.5 rounded-lg">
+                <span><i class="fa-solid fa-check text-amber-400 mr-2"></i>Buy &amp; Sell Hand Signals</span>
+                <span class="font-mono text-slate-400">Authentic Poses</span>
+              </div>
+              <div class="flex items-center justify-between text-[11px] text-slate-300 bg-white/5 px-2.5 py-1.5 rounded-lg">
+                <span><i class="fa-solid fa-check text-amber-400 mr-2"></i>Shout Orders &amp; Sounds</span>
+                <span class="font-mono text-slate-400">Real Floor Vibe</span>
+              </div>
+            </div>
+          </div>
+
+          <button class="w-full py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500 text-amber-300 hover:text-slate-950 font-bold text-xs border border-amber-500/40 transition-all flex items-center justify-center gap-2">
+            <span>Open Spatial Window</span>
+            <i class="fa-solid fa-up-right-from-square text-xs"></i>
+          </button>
+        </div>
+
+        <!-- Card 3: Macro Shockwave Matrix -->
+        <div onclick="launchSpatialWindow('shockwave')" class="glass-panel glass-panel-interactive p-6 rounded-3xl flex flex-col justify-between cursor-pointer group relative overflow-hidden">
+          <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-purple-500/10 rounded-full blur-3xl group-hover:bg-purple-500/20 transition-all"></div>
+          <div>
+            <div class="w-12 h-12 rounded-2xl bg-purple-500/20 border border-purple-500/30 text-purple-400 flex items-center justify-center text-xl mb-4 group-hover:scale-110 transition-transform">
+              <i class="fa-solid fa-volcano"></i>
+            </div>
+            <h3 class="text-lg font-bold text-white mb-2 group-hover:text-purple-300 transition-colors">Macro Shockwave Matrix</h3>
+            <p class="text-xs text-slate-400 leading-relaxed mb-4">See how big world events affect prices! Trigger simulated shocks (like oil price spikes or interest rate hikes) and watch ripples spread across markets.</p>
+            
+            <div class="space-y-2 mb-6">
+              <div class="flex items-center justify-between text-[11px] text-slate-300 bg-white/5 px-2.5 py-1.5 rounded-lg">
+                <span><i class="fa-solid fa-check text-purple-400 mr-2"></i>Market Ripple Animations</span>
+                <span class="font-mono text-slate-400">Visual Waves</span>
+              </div>
+              <div class="flex items-center justify-between text-[11px] text-slate-300 bg-white/5 px-2.5 py-1.5 rounded-lg">
+                <span><i class="fa-solid fa-check text-purple-400 mr-2"></i>What-If Scenario Testing</span>
+                <span class="font-mono text-slate-400">Simulated Shocks</span>
+              </div>
+              <div class="flex items-center justify-between text-[11px] text-slate-300 bg-white/5 px-2.5 py-1.5 rounded-lg">
+                <span><i class="fa-solid fa-check text-purple-400 mr-2"></i>Account Safety Check</span>
+                <span class="font-mono text-slate-400">Risk Alerts</span>
+              </div>
+            </div>
+          </div>
+
+          <button class="w-full py-2.5 rounded-xl bg-purple-500/20 hover:bg-purple-500 text-purple-300 hover:text-slate-950 font-bold text-xs border border-purple-500/40 transition-all flex items-center justify-center gap-2">
+            <span>Open Spatial Window</span>
+            <i class="fa-solid fa-up-right-from-square text-xs"></i>
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         VIEW 1: SPATIAL WORKSTATION (Optimized layout with full button visibility)
+         ==================================================================== -->
+    <section id="space-workstation" class="hidden h-full w-full grid grid-cols-12 gap-3 overflow-y-auto pb-14 pr-1">
+      
+      <!-- Top Row Left (8 cols): Candlestick & Volume Feed -->
+      <div class="col-span-12 lg:col-span-8 glass-panel p-3 rounded-2xl flex flex-col h-[240px]">
+        <div class="flex items-center justify-between mb-1.5 shrink-0">
+          <div class="flex items-center gap-3">
+            <span id="chartSymbolTitle" class="text-xs font-bold text-white font-mono">/ES - E-mini S&amp;P 500</span>
+            <div class="flex items-center gap-1 bg-slate-900/90 p-0.5 rounded-lg border border-white/10 text-[10px]">
+              <button onclick="setTimeframe('1m')" class="tf-btn px-2 py-0.5 rounded text-cyan-300 bg-white/10 font-mono">1m</button>
+              <button onclick="setTimeframe('5m')" class="tf-btn px-2 py-0.5 rounded text-slate-400 font-mono">5m</button>
+              <button onclick="setTimeframe('15m')" class="tf-btn px-2 py-0.5 rounded text-slate-400 font-mono">15m</button>
+              <button onclick="setTimeframe('1h')" class="tf-btn px-2 py-0.5 rounded text-slate-400 font-mono">1h</button>
+            </div>
+          </div>
+          <div class="flex items-center gap-3 text-[10px] font-mono">
+            <label class="flex items-center gap-1 cursor-pointer text-slate-300">
+              <input type="checkbox" id="chk-vwap" checked onchange="drawCandleChart()" class="rounded bg-slate-800 border-white/20 text-cyan-500 focus:ring-0"> VWAP
+            </label>
+            <label class="flex items-center gap-1 cursor-pointer text-slate-300">
+              <input type="checkbox" id="chk-sma" checked onchange="drawCandleChart()" class="rounded bg-slate-800 border-white/20 text-emerald-500 focus:ring-0"> SMA 20
+            </label>
+          </div>
+        </div>
+        <div class="flex-1 relative w-full h-full min-h-0">
+          <canvas id="candleCanvas" class="w-full h-full block rounded-xl"></canvas>
+        </div>
+      </div>
+
+      <!-- Top Row Right (4 cols): Level 2 DOM Order Book -->
+      <div class="col-span-12 lg:col-span-4 glass-panel p-3 rounded-2xl flex flex-col h-[240px]">
+        <div class="flex items-center justify-between mb-1.5 shrink-0">
+          <span class="text-xs font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-bars-staggered text-cyan-400"></i> LEVEL 2 DOM BOOK
+          </span>
+          <span class="text-[10px] font-mono bg-cyan-500/20 text-cyan-300 px-2 py-0.5 rounded-full border border-cyan-500/30">
+            SPREAD: <span id="dom-spread">0.25</span>
+          </span>
+        </div>
+        
+        <!-- Depth Column Headers -->
+        <div class="grid grid-cols-3 text-[10px] font-mono text-slate-400 border-b border-white/10 pb-1 mb-1 text-center shrink-0">
+          <span>BID SIZE</span>
+          <span>PRICE</span>
+          <span>ASK SIZE</span>
+        </div>
+
+        <!-- Scrollable Order Book Ladder -->
+        <div id="dom-ladder-container" class="flex-1 overflow-y-auto space-y-0.5 font-mono text-xs">
+          <!-- Populated by JS -->
+        </div>
+
+        <!-- Imbalance Bar -->
+        <div class="mt-1 pt-1 border-t border-white/10 shrink-0">
+          <div class="flex justify-between text-[10px] font-mono mb-1">
+            <span class="text-emerald-400 font-bold" id="bid-pct-label">BIDS 58%</span>
+            <span class="text-slate-400">IMBALANCE</span>
+            <span class="text-rose-400 font-bold" id="ask-pct-label">ASKS 42%</span>
+          </div>
+          <div class="h-1.5 w-full bg-rose-500/30 rounded-full overflow-hidden flex">
+            <div id="bid-imbalance-bar" class="h-full bg-emerald-500 transition-all duration-300" style="width: 58%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Middle Row Left (8 cols): Spatial 3D Order Depth Landscape -->
+      <div class="col-span-12 lg:col-span-8 glass-panel p-3 rounded-2xl flex flex-col h-[240px] relative">
+        <div class="flex items-center justify-between mb-1.5 shrink-0 z-10">
+          <span class="text-xs font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-cubes text-purple-400"></i> 3D ORDER DEPTH LANDSCAPE
+          </span>
+          <div class="flex items-center gap-2 text-[10px] font-mono">
+            <span class="flex items-center gap-1 text-emerald-400"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> BUY PRESSURE</span>
+            <span class="flex items-center gap-1 text-rose-400"><span class="w-2 h-2 rounded-full bg-rose-500"></span> ASK SELL WALLS</span>
+          </div>
+        </div>
+        <div class="flex-1 relative w-full h-full rounded-xl overflow-hidden bg-slate-950/60">
+          <canvas id="spatialDepthCanvas" class="w-full h-full block cursor-grab active:cursor-grabbing"></canvas>
+          <div class="absolute bottom-2 left-2 text-[9px] font-mono text-slate-400 bg-slate-900/80 px-2 py-0.5 rounded border border-white/10 pointer-events-none">
+            <i class="fa-solid fa-hand-pointer mr-1 text-cyan-400"></i> Drag to orbit 3D Landscape
+          </div>
+        </div>
+      </div>
+
+      <!-- Middle Row Right (4 cols): Time & Sales -->
+      <div class="col-span-12 lg:col-span-4 glass-panel p-3 rounded-2xl flex flex-col h-[240px]">
+        <div class="flex items-center justify-between mb-1.5 shrink-0">
+          <span class="text-xs font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-receipt text-amber-400"></i> TIME &amp; SALES (TRADE TAPE)
+          </span>
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+        </div>
+        
+        <div class="grid grid-cols-4 text-[10px] font-mono text-slate-400 border-b border-white/10 pb-1 mb-1 shrink-0">
+          <span>TIME</span>
+          <span class="text-right">PRICE</span>
+          <span class="text-right">SIZE</span>
+          <span class="text-right">AGGR</span>
+        </div>
+
+        <div id="tape-list" class="flex-1 overflow-y-auto space-y-1 font-mono text-[11px]">
+          <!-- Live Ticks Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Bottom Row Left (5 cols): Spatial Execution Desk (Always fully visible) -->
+      <div class="col-span-12 lg:col-span-5 glass-panel p-3.5 rounded-2xl flex flex-col justify-between border border-cyan-500/20 shadow-lg">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-bolt text-cyan-400"></i> EXECUTION DESK
+          </span>
+          <span class="text-[10px] font-mono text-cyan-300 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">Direct Gateway</span>
+        </div>
+
+        <!-- Buy / Sell Order Side Buttons -->
+        <div class="grid grid-cols-2 gap-2 mb-2">
+          <button id="btn-side-buy" onclick="setOrderSide('BUY')" class="py-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 font-bold text-xs hover:bg-emerald-500 hover:text-slate-950 transition-all">
+            BUY / LONG
+          </button>
+          <button id="btn-side-sell" onclick="setOrderSide('SELL')" class="py-2 rounded-xl bg-slate-900 text-slate-400 border border-white/10 font-bold text-xs hover:bg-rose-500/20 hover:text-rose-400 transition-all">
+            SELL / SHORT
+          </button>
+        </div>
+
+        <!-- Inputs: Type, Lots, Price -->
+        <div class="grid grid-cols-3 gap-2 mb-2 text-xs font-mono">
+          <div>
+            <label class="text-[10px] text-slate-400 block mb-1">TYPE</label>
+            <select id="ord-type" class="w-full bg-slate-900 border border-white/15 rounded-xl p-1.5 text-white focus:outline-none focus:border-cyan-400">
+              <option value="LIMIT">LIMIT</option>
+              <option value="MARKET">MARKET</option>
+              <option value="STOP">STOP</option>
+            </select>
+          </div>
+          <div>
+            <label class="text-[10px] text-slate-400 block mb-1">LOTS</label>
+            <input type="number" id="ord-lots" value="5" min="1" max="100" onchange="calcMargin()" class="w-full bg-slate-900 border border-white/15 rounded-xl p-1.5 text-white font-bold focus:outline-none focus:border-cyan-400" />
+          </div>
+          <div>
+            <label class="text-[10px] text-slate-400 block mb-1">PRICE</label>
+            <input type="text" id="ord-price" value="5842.25" class="w-full bg-slate-900 border border-white/15 rounded-xl p-1.5 text-cyan-300 font-bold focus:outline-none focus:border-cyan-400" />
+          </div>
+        </div>
+
+        <!-- Margin Calculations -->
+        <div class="bg-slate-900/80 p-2 rounded-xl border border-white/10 text-[11px] font-mono space-y-0.5 mb-2.5">
+          <div class="flex justify-between text-slate-400">
+            <span>Est. Initial Margin:</span>
+            <span id="est-margin-val" class="text-white font-bold">$61,600.00</span>
+          </div>
+          <div class="flex justify-between text-slate-400">
+            <span>Notional Value:</span>
+            <span id="est-notional-val" class="text-white">$1,460,562.50</span>
+          </div>
+        </div>
+
+        <!-- Prominent Submit Order Action Button -->
+        <button onclick="submitOrder()" class="w-full py-3 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-vision transition-all cursor-pointer">
+          <i class="fa-solid fa-paper-plane mr-1.5"></i> Submit Order to Exchange
+        </button>
+      </div>
+
+      <!-- Bottom Row Right (7 cols): Active Positions Desk -->
+      <div class="col-span-12 lg:col-span-7 glass-panel p-3.5 rounded-2xl flex flex-col justify-between">
+        <div class="flex items-center justify-between mb-2">
+          <span class="text-xs font-bold text-white flex items-center gap-2">
+            <i class="fa-solid fa-briefcase text-emerald-400"></i> ACTIVE POSITIONS &amp; PORTFOLIO DESK
+          </span>
+          <div class="text-[11px] font-mono">
+            UNREALIZED PnL: <span id="portfolio-pnl" class="font-bold text-emerald-400">+$2,450.00</span>
+          </div>
+        </div>
+
+        <!-- Position Table -->
+        <div class="overflow-x-auto flex-1 max-h-[160px]">
+          <table class="w-full text-left font-mono text-xs">
+            <thead>
+              <tr class="text-[10px] text-slate-400 border-b border-white/10 pb-1">
+                <th class="pb-2">CONTRACT</th>
+                <th class="pb-2">SIDE</th>
+                <th class="pb-2 text-right">LOTS</th>
+                <th class="pb-2 text-right">ENTRY</th>
+                <th class="pb-2 text-right">MARK</th>
+                <th class="pb-2 text-right">PnL</th>
+                <th class="pb-2 text-center">ACTION</th>
+              </tr>
+            </thead>
+            <tbody id="position-tbody" class="divide-y divide-white/5">
+              <!-- Populated by JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ====================================================================
+         VIEW 2: 3D OPEN OUTCRY TRADING PIT
+         ==================================================================== -->
+    <section id="space-pit" class="hidden h-full w-full grid grid-cols-12 gap-3 overflow-hidden">
+      <!-- 3D Pit Canvas Viewport (8 cols) -->
+      <div class="col-span-12 lg:col-span-8 glass-panel p-3.5 rounded-2xl flex flex-col h-full relative">
+        <div class="flex items-center justify-between mb-2 shrink-0 z-10">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-users-rays text-amber-400"></i> 3D OPEN OUTCRY PIT
+            </span>
+            <span class="text-[10px] font-mono bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-500/30">
+              S&amp;P 500 OCTAGON PIT
+            </span>
+          </div>
+          <button onclick="togglePitCrowdNoise()" id="btn-pit-noise" class="px-2.5 py-1 rounded-xl bg-slate-900 border border-white/15 text-slate-300 hover:text-white text-[10px] font-mono flex items-center gap-1.5">
+            <i class="fa-solid fa-volume-xmark text-amber-400"></i> Ambient Roar
+          </button>
+        </div>
+
+        <div class="flex-1 relative w-full h-full rounded-xl overflow-hidden bg-slate-950/80">
+          <canvas id="pitCanvas" class="w-full h-full block cursor-grab active:cursor-grabbing"></canvas>
+          
+          <div class="absolute bottom-3 left-3 text-[10px] font-mono text-slate-300 bg-slate-900/90 px-3 py-1.5 rounded-xl border border-white/15 shadow">
+            <i class="fa-solid fa-mouse-pointer mr-1 text-amber-400"></i> Click any 3D Trader to inspect quotes &amp; signals
+          </div>
+        </div>
+      </div>
+
+      <!-- Pit Controls & Hand Signal Reference (4 cols) -->
+      <div class="col-span-12 lg:col-span-4 glass-panel p-4 rounded-2xl flex flex-col justify-between h-full overflow-y-auto">
+        <div>
+          <div class="flex items-center justify-between mb-3 border-b border-white/10 pb-2">
+            <span class="text-xs font-bold text-white">OPEN OUTCRY ORDER SPOUTER</span>
+            <span class="text-[10px] font-mono text-amber-400">SHOUT CONSOLE</span>
+          </div>
+
+          <!-- Pit Shout Controls -->
+          <div class="space-y-3 mb-6">
+            <div>
+              <label class="text-[10px] font-mono text-slate-400 block mb-1">SHOUT PRICE</label>
+              <input type="text" id="pit-shout-price" value="5842.50" class="w-full bg-slate-900 border border-white/15 rounded-xl p-2 text-cyan-300 font-mono text-sm font-bold" />
+            </div>
+
+            <div>
+              <label class="text-[10px] font-mono text-slate-400 block mb-1">CONTRACT LOTS</label>
+              <input type="number" id="pit-shout-qty" value="25" class="w-full bg-slate-900 border border-white/15 rounded-xl p-2 text-white font-mono text-sm font-bold" />
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+              <button onclick="shoutPitOrder('BUY')" class="py-3 rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/50 font-black text-xs hover:bg-emerald-500 hover:text-slate-950 transition-all flex flex-col items-center justify-center gap-1">
+                <i class="fa-solid fa-hand-front-left text-sm"></i>
+                <span>SHOUT BID (BUY)</span>
+              </button>
+              <button onclick="shoutPitOrder('SELL')" class="py-3 rounded-xl bg-rose-500/20 text-rose-300 border border-rose-500/50 font-black text-xs hover:bg-rose-500 hover:text-slate-950 transition-all flex flex-col items-center justify-center gap-1">
+                <i class="fa-solid fa-hand-back-fist text-sm"></i>
+                <span>SHOUT OFFER (SELL)</span>
+              </button>
+            </div>
+          </div>
+
+          <!--Hand Signals Reference Cheat Sheet -->
+          <div class="border-t border-white/10 pt-3">
+            <h4 class="text-xs font-bold text-white mb-2 flex items-center gap-2">
+              <i class="fa-solid fa-hand text-cyan-400"></i>PIT HAND SIGNALS CHEAT SHEET
+            </h4>
+            
+            <div class="space-y-2 text-[11px] font-mono">
+              <div class="p-2 rounded-xl bg-slate-900/80 border border-white/10 flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-sm">
+                  <i class="fa-solid fa-hand-paper"></i>
+                </div>
+                <div>
+                  <div class="text-emerald-400 font-bold">BUY / BID SIGNAL</div>
+                  <div class="text-[10px] text-slate-400">Palm facing IN towards trader's face.</div>
+                </div>
+              </div>
+
+              <div class="p-2 rounded-xl bg-slate-900/80 border border-white/10 flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center font-bold text-sm">
+                  <i class="fa-solid fa-hand-sparkles"></i>
+                </div>
+                <div>
+                  <div class="text-rose-400 font-bold">SELL / OFFER SIGNAL</div>
+                  <div class="text-[10px] text-slate-400">Palm facing OUT away from body into pit.</div>
+                </div>
+              </div>
+
+              <div class="p-2 rounded-xl bg-slate-900/80 border border-white/10 flex items-center gap-3">
+                <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-bold text-sm">
+                  <i class="fa-solid fa-hand-peace"></i>
+                </div>
+                <div>
+                  <div class="text-amber-400 font-bold">QUANTITY &amp; TICK FRACTIONS</div>
+                  <div class="text-[10px] text-slate-400">Fingers held vertically against chin or chest.</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="text-[10px] font-mono text-slate-500 text-center pt-2">
+              Open Outcry Floor Protocol Specs
+        </div>
+      </div>
+    </section>
+
+    <!-- ====================================================================
+         VIEW 3: CROSS-ASSET MACRO SHOCKWAVE & COLLATERAL MATRIX
+         ==================================================================== -->
+    <section id="space-shockwave" class="hidden h-full w-full grid grid-cols-12 gap-3 overflow-hidden">
+      <!-- Left Column (8 cols): Interactive Animated Shockwave Ripple Canvas -->
+      <div class="col-span-12 lg:col-span-8 glass-panel p-3.5 rounded-2xl flex flex-col h-full relative">
+        <div class="flex items-center justify-between mb-2 shrink-0 z-10">
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-volcano text-purple-400"></i> ANIMATED SHOCKWAVE CONTAGION VECTOR CANVAS
+            </span>
+            <span class="text-[10px] font-mono bg-purple-500/20 text-purple-300 px-2 py-0.5 rounded-full border border-purple-500/30">
+              CROSS-ASSET ELASTICITY
+            </span>
+          </div>
+
+          <!-- Scenario Presets -->
+          <div class="flex items-center gap-1.5 text-[10px] font-mono">
+            <button onclick="applyPresetShock('fed_hike')" class="px-2 py-1 rounded-lg bg-slate-900 hover:bg-purple-500/20 border border-white/15 text-purple-300">
+              Fed +50bp
+            </button>
+            <button onclick="applyPresetShock('oil_crisis')" class="px-2 py-1 rounded-lg bg-slate-900 hover:bg-purple-500/20 border border-white/15 text-purple-300">
+              Oil Spike
+            </button>
+            <button onclick="applyPresetShock('tech_dump')" class="px-2 py-1 rounded-lg bg-slate-900 hover:bg-purple-500/20 border border-white/15 text-purple-300">
+              Tech Selloff
+            </button>
+          </div>
+        </div>
+
+        <!-- Shock Canvas Viewport -->
+        <div class="flex-1 relative w-full h-full rounded-xl overflow-hidden bg-slate-950/90">
+          <canvas id="shockCanvas" class="w-full h-full block"></canvas>
+
+          <div class="absolute bottom-3 left-3 text-[10px] font-mono text-slate-300 bg-slate-900/90 px-3 py-1.5 rounded-xl border border-white/15 shadow">
+            <i class="fa-solid fa-bullseye mr-1 text-purple-400"></i> Click any Node on Canvas to set Epicenter Shock
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column (4 cols): Shock Controls, Sensitivity Matrix & Collateral Headroom -->
+      <div class="col-span-12 lg:col-span-4 glass-panel p-4 rounded-2xl flex flex-col justify-between h-full overflow-y-auto space-y-4">
+        
+        <!-- Shock Detonation Controls -->
+        <div>
+          <div class="flex items-center justify-between mb-2 border-b border-white/10 pb-2">
+            <span class="text-xs font-bold text-white">SYSTEMIC SHOCK ENGINE</span>
+            <span class="text-[10px] font-mono text-purple-400">EPICENTER CONTROL</span>
+          </div>
+
+          <div class="space-y-3 mb-4">
+            <div>
+              <label class="text-[10px] font-mono text-slate-400 block mb-1">PRIMARY EPICENTER SOURCE</label>
+              <select id="shock-source" onchange="triggerMacroShockwave()" class="w-full bg-slate-900 border border-white/15 rounded-xl p-2 text-cyan-300 font-mono text-xs font-bold">
+                <option value="ZN_F">/ZN - 10-Yr US Treasury Note (Rates Epicenter)</option>
+                <option value="ES_F">/ES - E-mini S&amp;P 500 (Equity Index)</option>
+                <option value="CL_F">/CL - Crude Oil Futures (Energy Shock)</option>
+                <option value="GC_F">/GC - Gold Futures (Safe-Haven Flight)</option>
+                <option value="BTC_F">/BTC - Bitcoin Futures (Crypto Beta)</option>
+                <option value="NQ_F">/NQ - E-mini Nasdaq-100 (Tech Beta)</option>
+              </select>
+            </div>
+
+            <div>
+              <div class="flex justify-between text-[10px] font-mono mb-1">
+                <span class="text-slate-400">SHOCK MAGNITUDE</span>
+                <span id="shock-mag-val" class="text-rose-400 font-bold">-5.0%</span>
+              </div>
+              <input type="range" id="shock-magnitude" min="-15" max="15" step="0.5" value="-5" oninput="document.getElementById('shock-mag-val').innerText = (this.value >= 0 ? '+' : '') + this.value + '%'; triggerMacroShockwave();" class="w-full accent-purple-500 cursor-pointer" />
+            </div>
+
+            <div class="grid grid-cols-2 gap-2">
+              <button onclick="triggerMacroShockwave()" class="py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-glow-purple transition-all">
+                Detonate Shock
+              </button>
+              <button onclick="resetShockwaveSimulation()" class="py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 font-mono text-xs border border-white/10 transition-all">
+                Reset Baseline
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sensitivity Beta Matrix -->
+        <div class="flex-1 border-t border-white/10 pt-3">
+          <h4 class="text-xs font-bold text-white mb-2 flex items-center justify-between">
+            <span>CROSS-ASSET ELASTICITY LIST</span>
+            <span class="text-[10px] font-mono text-slate-400">BETA (β) TRANSFER</span>
+          </h4>
+
+          <div id="cross-elasticity-list" class="space-y-1.5 font-mono text-xs max-h-[160px] overflow-y-auto pr-1">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+        <!-- Collateral Headroom & Margin Call Stress Tester -->
+        <div class="border-t border-white/10 pt-3">
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-xs font-bold text-white">COLLATERAL HEADROOM</span>
+            <span id="margin-status-badge" class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+              PORTFOLIO SAFE
+            </span>
+          </div>
+
+          <div class="bg-slate-900/90 p-3 rounded-xl border border-white/10 space-y-2 font-mono text-xs">
+            <div class="flex justify-between text-slate-400 text-[11px]">
+              <span>Base Margin Required:</span>
+              <span class="text-white font-bold">$24,640.00</span>
+            </div>
+            <div class="flex justify-between text-slate-400 text-[11px]">
+              <span>Post-Shock Stress Margin:</span>
+              <span id="post-shock-margin" class="text-rose-400 font-bold">$38,840.00</span>
+            </div>
+
+            <div>
+              <div class="flex justify-between text-[10px] text-slate-400 mb-1">
+                <span>Free Collateral Headroom</span>
+                <span id="collateral-headroom-pct" class="text-emerald-400 font-bold">86.8% SAFE</span>
+              </div>
+              <div class="h-2 w-full bg-slate-800 rounded-full overflow-hidden">
+                <div id="collateral-bar" class="h-full bg-emerald-500 transition-all duration-300" style="width: 86.8%"></div>
+              </div>
+            </div>
+          </div>
+
+          <button onclick="explainShockwaveWithAI()" class="w-full mt-3 py-2 rounded-xl bg-purple-500/20 hover:bg-purple-500 text-purple-300 hover:text-slate-950 font-bold text-xs border border-purple-500/40 transition-all flex items-center justify-center gap-2">
+            <i class="fa-solid fa-wand-magic-sparkles"></i>
+            <span>Explain Stress via AI Copilot</span>
+          </button>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ====================================================================
+       MODAL 1: GEMINI MARKET COPILOT
+       ==================================================================== -->
+  <div id="copilotModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
+    <div class="glass-panel w-full max-w-2xl rounded-3xl border border-purple-500/30 shadow-glow-purple p-6 flex flex-col h-[520px] relative overflow-hidden">
+      <!-- Header -->
+      <div class="flex items-center justify-between pb-4 border-b border-white/10 shrink-0">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-2xl bg-purple-600/30 text-purple-300 border border-purple-500/40 flex items-center justify-center text-lg">
+            <i class="fa-solid fa-brain"></i>
+          </div>
+          <div>
+            <h3 class="text-base font-bold text-white flex items-center gap-2">
+              Gemini Market Copilot
+              <span class="text-[9px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30 font-mono">gemini-3-flash</span>
+            </h3>
+            <p class="text-xs text-slate-400">Institutional Market Depth &amp; Macro Contagion Analyst</p>
+          </div>
+        </div>
+        <button onclick="closeCopilotModal()" class="w-8 h-8 rounded-full bg-white/5 hover:bg-white/15 text-slate-400 hover:text-white flex items-center justify-center transition-colors">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <!-- Quick Queries -->
+      <div class="py-3 flex items-center gap-2 overflow-x-auto shrink-0 border-b border-white/5 text-xs font-mono">
+        <button onclick="sendQuickQuery('Analyze current order book imbalance and key liquidity walls for /ES.')" class="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-purple-500/20 text-purple-300 border border-white/10 shrink-0">
+          Analyze Liquidity Walls
+        </button>
+        <button onclick="sendQuickQuery('What cross-asset contagion happens if Crude Oil /CL spikes +10%?')" class="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-purple-500/20 text-purple-300 border border-white/10 shrink-0">
+          Oil Spike Impact
+        </button>
+        <button onclick="sendQuickQuery('Assess my portfolio margin headroom under Fed rate shock.')" class="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-purple-500/20 text-purple-300 border border-white/10 shrink-0">
+          Margin Call Risk
+        </button>
+      </div>
+
+      <!-- Chat Response Output Area -->
+      <div id="copilotChatOutput" class="flex-1 overflow-y-auto my-4 space-y-3 font-sans text-xs leading-relaxed text-slate-200 pr-1">
+        <div class="p-3 rounded-2xl bg-purple-500/10 border border-purple-500/20 text-purple-200">
+          <p class="font-bold mb-1"><i class="fa-solid fa-sparkles mr-1.5"></i> Welcome to Spatial Copilot</p>
+          <p class="text-slate-300">Ask me about Level 2 depth imbalances, cross-asset elasticities, 3D open outcry hand signals, or collateral haircut stress tests.</p>
+        </div>
+      </div>
+
+      <!-- Chat Input Field -->
+      <div class="flex items-center gap-2 shrink-0 pt-2 border-t border-white/10">
+        <input type="text" id="copilotInput" placeholder="Ask Gemini about order flow, liquidity walls, or macro contagion..." onkeydown="if(event.key==='Enter') executeCopilot();" class="flex-1 bg-slate-900 border border-white/15 rounded-2xl px-4 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-purple-400 font-sans" />
+        <button onclick="executeCopilot()" class="px-4 py-2.5 rounded-2xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs shadow-glow-purple transition-all flex items-center gap-2">
+          <span>Ask</span>
+          <i class="fa-solid fa-paper-plane text-xs"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       MODAL 2: 3D TRADER INSPECTOR POPOVER
+       ==================================================================== -->
+  <div id="traderInspectorModal" class="hidden fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="glass-panel w-full max-w-sm rounded-3xl border border-amber-500/40 shadow-glow-amber p-5 flex flex-col space-y-4 relative">
+      <div class="flex items-center justify-between border-b border-white/10 pb-3">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center font-bold text-sm">
+            <i class="fa-solid fa-user-tie"></i>
+          </div>
+          <div>
+            <h4 id="inspectorTraderName" class="text-sm font-bold text-white">Trader #08 (Goldman Desk)</h4>
+            <span id="inspectorTraderBadge" class="text-[10px] font-mono text-amber-300">BADGE: #4829 • STEP 2</span>
+          </div>
+        </div>
+        <button onclick="document.getElementById('traderInspectorModal').classList.add('hidden')" class="w-7 h-7 rounded-full bg-white/5 text-slate-400 hover:text-white flex items-center justify-center">
+          <i class="fa-solid fa-xmark text-xs"></i>
+        </button>
+      </div>
+
+      <div class="space-y-2 font-mono text-xs">
+        <div class="flex justify-between p-2 rounded-xl bg-slate-900/80 border border-white/5">
+          <span class="text-slate-400">DESK ROLE:</span>
+          <span id="inspectorTraderRole" class="text-white font-bold">Institutional Local</span>
+        </div>
+        <div class="flex justify-between p-2 rounded-xl bg-slate-900/80 border border-white/5">
+          <span class="text-slate-400">CURRENT SHOUT:</span>
+          <span id="inspectorTraderQuote" class="text-emerald-400 font-bold">BUY 50 @ 5842.25</span>
+        </div>
+        <div class="flex justify-between p-2 rounded-xl bg-slate-900/80 border border-white/5">
+          <span class="text-slate-400">HAND POSE:</span>
+          <span id="inspectorTraderGesture" class="text-amber-300 font-bold">Palm Facing Face (BID)</span>
+        </div>
+      </div>
+
+      <button onclick="matchTraderOrder()" class="w-full py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider transition-all">
+        Instantly Match Order
+      </button>
+    </div>
+  </div>
+
+
+  <script>
+    const Global_SPEC = {
+      'ES_F': { symbol: '/ES', name: 'E-mini S&P 500', price: 5842.25, tickSize: 0.25, initialMargin: 12320, notionalMult: 50 },
+      'NQ_F': { symbol: '/NQ', name: 'E-mini Nasdaq-100', price: 20450.50, tickSize: 0.25, initialMargin: 18480, notionalMult: 20 },
+      'BTC_F': { symbol: '/BTC', name: 'Bitcoin Futures', price: 63850.00, tickSize: 5.0, initialMargin: 35200, notionalMult: 5 },
+      'CL_F': { symbol: '/CL', name: 'Crude Oil Futures', price: 74.80, tickSize: 0.01, initialMargin: 7150, notionalMult: 1000 },
+      'GC_F': { symbol: '/GC', name: 'Gold Futures', price: 2512.40, tickSize: 0.10, initialMargin: 9900, notionalMult: 100 },
+      'ZN_F': { symbol: '/ZN', name: '10-Yr US Treasury Note', price: 110.156, tickSize: 0.0156, initialMargin: 2420, notionalMult: 1000 }
+    };
+
+    const SHOCK_SENSITIVITIES = {
+      'ZN_F': { betas: { 'ES_F': -0.75, 'NQ_F': -0.92, 'BTC_F': -0.65, 'CL_F': -0.30, 'GC_F': 0.55, 'ZN_F': 1.0 } },
+      'ES_F': { betas: { 'ZN_F': -0.45, 'NQ_F': 1.25, 'BTC_F': 0.85, 'CL_F': 0.40, 'GC_F': -0.15, 'ES_F': 1.0 } },
+      'CL_F': { betas: { 'ES_F': -0.35, 'NQ_F': -0.45, 'ZN_F': -0.50, 'GC_F': 0.40, 'BTC_F': -0.20, 'CL_F': 1.0 } },
+      'GC_F': { betas: { 'ES_F': -0.20, 'NQ_F': -0.25, 'ZN_F': 0.35, 'CL_F': 0.25, 'BTC_F': 0.15, 'GC_F': 1.0 } },
+      'BTC_F': { betas: { 'ES_F': 0.60, 'NQ_F': 0.75, 'ZN_F': -0.20, 'CL_F': 0.10, 'GC_F': 0.10, 'BTC_F': 1.0 } },
+      'NQ_F': { betas: { 'ES_F': 0.88, 'ZN_F': -0.60, 'BTC_F': 0.80, 'CL_F': -0.30, 'GC_F': -0.10, 'NQ_F': 1.0 } }
+    };
+
+    let activeSpace = 'hub';
+    let currentContractKey = 'ES_F';
+    let timeframes = '1m';
+    let currentOrderSide = 'BUY';
+    let candles = [];
+    let positions = [
+      { id: 'POS-101', symbol: '/ES', side: 'LONG', lots: 2, entry: 5838.50, mark: 5842.25, pnl: 375.00 },
+      { id: 'POS-102', symbol: '/NQ', side: 'LONG', lots: 1, entry: 20380.00, mark: 20450.50, pnl: 1410.00 },
+      { id: 'POS-103', symbol: '/GC', side: 'SHORT', lots: 2, entry: 2515.70, mark: 2512.40, pnl: 660.00 }
+    ];
+    let activeShock = { source: 'ZN_F', magnitude: -5.0 };
+    let selectedTraderForMatch = null;
+
+    let audioCtx = null;
+    let isAudioMuted = false;
+    let isPitNoisePlaying = false;
+    let pitNoiseNode = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) {
+          audioCtx = new AudioContext();
+        }
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }
+
+    /* ====================================================================
+       SPATIAL NAVIGATION & MULTI-WINDOW LAUNCHER
+       ==================================================================== */
+    function launchSpatialWindow(spaceKey) {
+      if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.openWindow) {
+        try {
+          window.webkit.messageHandlers.openWindow.postMessage(spaceKey);
+        } catch (e) {
+          console.log("visionOS bridge call:", e);
+        }
+      }
+      switchSpace(spaceKey);
+    }
+
+    function switchSpace(spaceKey) {
+      activeSpace = spaceKey;
+
+      ['hub', 'workstation', 'pit', 'shockwave'].forEach(s => {
+        const spaceElem = document.getElementById(`space-${s}`);
+        const navBtn = document.getElementById(`nav-${s}`);
+
+        if (s === spaceKey) {
+          if (spaceElem) spaceElem.classList.remove('hidden');
+          if (navBtn) {
+            navBtn.className = "px-4 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 text-white bg-white/15 shadow";
+          }
+        } else {
+          if (spaceElem) spaceElem.classList.add('hidden');
+          if (navBtn) {
+            navBtn.className = "px-4 py-1.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 text-slate-400 hover:text-white hover:bg-white/5";
+          }
+        }
+      });
+
+      window.requestAnimationFrame(() => {
+        if (spaceKey === 'workstation') {
+          drawCandleChart();
+          if (typeof resizeSpatialDepthCanvas === 'function') resizeSpatialDepthCanvas();
+        } else if (spaceKey === 'pit') {
+          if (typeof resizePitCanvas === 'function') resizePitCanvas();
+        } else if (spaceKey === 'shockwave') {
+          initShockwaveCanvas();
+        }
+      });
+    }
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const requestedSpace = urlParams.get('space');
+    if (requestedSpace && ['workstation', 'pit', 'shockwave'].includes(requestedSpace)) {
+      setTimeout(() => switchSpace(requestedSpace), 100);
+    }
+
+    function playAudioTone(freq, type = 'sine', duration = 0.08) {
+      if (isAudioMuted) return;
+      try {
+        initAudio();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    function toggleAudio() {
+      isAudioMuted = !isAudioMuted;
+      const btn = document.getElementById('audioBtn');
+      if (btn) {
+        btn.innerHTML = isAudioMuted ? '<i class="fa-solid fa-volume-xmark text-rose-400 text-xs"></i>' : '<i class="fa-solid fa-volume-high text-xs"></i>';
+      }
+    }
+
+    function togglePitCrowdNoise() {
+      initAudio();
+      const btn = document.getElementById('btn-pit-noise');
+      
+      if (!isPitNoisePlaying) {
+        const bufferSize = audioCtx.sampleRate * 2;
+        const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        let lastOut = 0.0;
+        for (let i = 0; i < bufferSize; i++) {
+          const white = Math.random() * 2 - 1;
+          output[i] = (lastOut + (0.02 * white)) / 1.02;
+          lastOut = output[i];
+          output[i] *= 3.5;
+        }
+
+        pitNoiseNode = audioCtx.createBufferSource();
+        pitNoiseNode.buffer = noiseBuffer;
+        pitNoiseNode.loop = true;
+
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = 400;
+
+        const gain = audioCtx.createGain();
+        gain.gain.value = 0.04;
+
+        pitNoiseNode.connect(filter);
+        filter.connect(gain);
+        gain.connect(audioCtx.destination);
+
+        pitNoiseNode.start();
+        isPitNoisePlaying = true;
+        if (btn) btn.innerHTML = '<i class="fa-solid fa-volume-high text-amber-400"></i> Roar Active';
+      } else {
+        if (pitNoiseNode) {
+          pitNoiseNode.stop();
+          pitNoiseNode.disconnect();
+        }
+        isPitNoisePlaying = false;
+        if (btn) btn.innerHTML = '<i class="fa-solid fa-volume-xmark text-amber-400"></i> Ambient Roar';
+      }
+    }
+
+    function onContractChange(val) {
+      currentContractKey = val;
+      const spec = Global_SPEC[val];
+      if (!spec) return;
+
+      const titleElem = document.getElementById('chartSymbolTitle');
+      if (titleElem) titleElem.innerText = `${spec.symbol} - ${spec.name}`;
+
+      const priceElem = document.getElementById('ord-price');
+      if (priceElem) priceElem.value = spec.price.toFixed(2);
+
+      updateHeaderStats();
+      generateDummyCandles();
+      drawCandleChart();
+      calcMargin();
+    }
+
+    function updateHeaderStats() {
+      const spec = Global_SPEC[currentContractKey];
+      if (!spec) return;
+
+      const hdrPrice = document.getElementById('hdr-price');
+      if (hdrPrice) hdrPrice.innerText = spec.price.toLocaleString('en-US', { minimumFractionDigits: 2 });
+    }
+
+    /* ====================================================================
+       CANDLESTICK CHART & LEVEL 2 DOM
+       ==================================================================== */
+    function setTimeframe(tf) {
+      timeframes = tf;
+      document.querySelectorAll('.tf-btn').forEach(btn => {
+        if (btn.innerText === tf) {
+          btn.className = "tf-btn px-2 py-0.5 rounded text-cyan-300 bg-white/10 font-mono";
+        } else {
+          btn.className = "tf-btn px-2 py-0.5 rounded text-slate-400 font-mono";
+        }
+      });
+      generateDummyCandles();
+      drawCandleChart();
+    }
+
+    function generateDummyCandles() {
+      const spec = Global_SPEC[currentContractKey];
+      let p = spec ? spec.price - 10 : 5800;
+      candles = [];
+      const now = Date.now();
+
+      for (let i = 40; i >= 0; i--) {
+        const change = (Math.random() - 0.48) * (spec ? spec.tickSize * 8 : 2);
+        const open = p;
+        const close = open + change;
+        const high = Math.max(open, close) + Math.random() * 1.5;
+        const low = Math.min(open, close) - Math.random() * 1.5;
+        const volume = Math.floor(Math.random() * 400 + 50);
+
+        candles.push({
+          time: new Date(now - i * 60000),
+          open, high, low, close, volume
+        });
+        p = close;
+      }
+    }
+
+    function drawCandleChart() {
+      const canvas = document.getElementById('candleCanvas');
+      if (!canvas || !canvas.parentElement) return;
+
+      const rect = canvas.parentElement.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+
+      const ctx = canvas.getContext('2d');
+      ctx.scale(dpr, dpr);
+      ctx.clearRect(0, 0, rect.width, rect.height);
+
+      if (candles.length === 0) return;
+
+      const padding = { top: 15, bottom: 25, left: 10, right: 55 };
+      const w = rect.width - padding.left - padding.right;
+      const h = rect.height - padding.top - padding.bottom;
+
+      let minP = Math.min(...candles.map(c => c.low));
+      let maxP = Math.max(...candles.map(c => c.high));
+      const rangeP = (maxP - minP) || 1;
+
+      const candleW = w / candles.length;
+
+      // Draw horizontal grid lines
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i <= 4; i++) {
+        const y = padding.top + (h / 4) * i;
+        ctx.beginPath();
+        ctx.moveTo(padding.left, y);
+        ctx.lineTo(rect.width - padding.right, y);
+        ctx.stroke();
+
+        const pVal = maxP - (rangeP / 4) * i;
+        ctx.fillStyle = '#64748b';
+        ctx.font = '9px "JetBrains Mono"';
+        ctx.fillText(pVal.toFixed(2), rect.width - padding.right + 6, y + 3);
+      }
+
+      // Draw Candlesticks & Indicators
+      const smaPoints = [];
+      let sumP = 0;
+
+      candles.forEach((c, idx) => {
+        const x = padding.left + idx * candleW + candleW / 2;
+        const openY = padding.top + h * (1 - (c.open - minP) / rangeP);
+        const closeY = padding.top + h * (1 - (c.close - minP) / rangeP);
+        const highY = padding.top + h * (1 - (c.high - minP) / rangeP);
+        const lowY = padding.top + h * (1 - (c.low - minP) / rangeP);
+
+        const isUp = c.close >= c.open;
+        const color = isUp ? '#10b981' : '#f43f5e';
+
+        // High/Low Wick
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(x, highY);
+        ctx.lineTo(x, lowY);
+        ctx.stroke();
+
+        // Body
+        ctx.fillStyle = color;
+        const bodyY = Math.min(openY, closeY);
+        const bodyH = Math.max(2, Math.abs(closeY - openY));
+        ctx.fillRect(x - candleW * 0.35, bodyY, candleW * 0.7, bodyH);
+
+        // SMA Calculation
+        sumP += c.close;
+        if (idx >= 5) {
+          const avg = sumP / (idx + 1);
+          const smaY = padding.top + h * (1 - (avg - minP) / rangeP);
+          smaPoints.push({ x, y: smaY });
+        }
+      });
+
+      // Draw SMA 20 Overlay Line
+      const chkSma = document.getElementById('chk-sma');
+      if (chkSma && chkSma.checked && smaPoints.length > 1) {
+        ctx.strokeStyle = '#34d399';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(smaPoints[0].x, smaPoints[0].y);
+        smaPoints.forEach(pt => ctx.lineTo(pt.x, pt.y));
+        ctx.stroke();
+      }
+    }
+
+    function renderDOMLadder() {
+      const container = document.getElementById('dom-ladder-container');
+      if (!container) return;
+
+      const spec = Global_SPEC[currentContractKey];
+      if (!spec) return;
+
+      const baseP = spec.price;
+      let html = '';
+
+      // Generate 5 Ask levels
+      for (let i = 5; i >= 1; i--) {
+        const p = (baseP + i * spec.tickSize).toFixed(2);
+        const sz = Math.floor(Math.random() * 120 + 10);
+        const depthPct = Math.min(100, (sz / 130) * 100);
+
+        html += `
+          <div class="grid grid-cols-3 text-center py-0.5 rounded depth-bar-ask text-[11px] items-center">
+            <span class="text-slate-600">-</span>
+            <span class="text-rose-400 font-bold">${p}</span>
+            <span class="text-slate-200">${sz}</span>
+          </div>
+        `;
+      }
+
+      // Spread indicator row
+      html += `
+        <div class="text-center py-1 my-0.5 bg-slate-900 border-y border-white/10 text-[10px] text-cyan-300 font-bold tracking-widest">
+          --- ${baseP.toFixed(2)} [SPREAD 0.25] ---
+        </div>
+      `;
+
+      // Generate 5 Bid levels
+      for (let i = 1; i <= 5; i++) {
+        const p = (baseP - i * spec.tickSize).toFixed(2);
+        const sz = Math.floor(Math.random() * 140 + 15);
+
+        html += `
+          <div class="grid grid-cols-3 text-center py-0.5 rounded depth-bar-bid text-[11px] items-center">
+            <span class="text-slate-200">${sz}</span>
+            <span class="text-emerald-400 font-bold">${p}</span>
+            <span class="text-slate-600">-</span>
+          </div>
+        `;
+      }
+
+      container.innerHTML = html;
+    }
+
+    /* ====================================================================
+       THREE.JS 3D ORDER DEPTH LANDSCAPE (3D BAR CHART)
+       ==================================================================== */
+    let depthScene, depthCamera, depthRenderer;
+    let depthBarGroup = null;
+    let isDepthMouseDown = false;
+    let mouseX = 0, mouseY = 0;
+
+    function initSpatialDepthThreeJS() {
+      const canvas = document.getElementById('spatialDepthCanvas');
+      if (!canvas) return;
+
+      const container = canvas.parentElement;
+      const w = container.clientWidth || 500;
+      const h = container.clientHeight || 250;
+
+      depthScene = new THREE.Scene();
+      depthCamera = new THREE.PerspectiveCamera(45, w / h, 0.1, 1000);
+      depthCamera.position.set(0, 12, 22);
+      depthCamera.lookAt(0, 0, 0);
+
+      depthRenderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+      depthRenderer.setSize(w, h);
+      depthRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+      // Lighting
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+      depthScene.add(ambientLight);
+
+      const dirLight = new THREE.DirectionalLight(0x00a3e0, 0.8);
+      dirLight.position.set(10, 20, 15);
+      depthScene.add(dirLight);
+
+      // Create 3D Order Depth Bar Chart Group
+      depthBarGroup = new THREE.Group();
+      depthScene.add(depthBarGroup);
+
+      build3DOrderBars();
+
+      // Mouse Orbit Listeners
+      canvas.addEventListener('mousedown', (e) => { isDepthMouseDown = true; mouseX = e.clientX; mouseY = e.clientY; });
+      window.addEventListener('mouseup', () => { isDepthMouseDown = false; });
+      window.addEventListener('mousemove', (e) => {
+        if (!isDepthMouseDown || !depthBarGroup) return;
+        const deltaX = e.clientX - mouseX;
+        const deltaY = e.clientY - mouseY;
+        depthBarGroup.rotation.y += deltaX * 0.008;
+        depthBarGroup.rotation.x += deltaY * 0.008;
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+      });
+
+      animateSpatialDepth();
+    }
+
+    function build3DOrderBars() {
+      if (!depthBarGroup) return;
+      while (depthBarGroup.children.length > 0) {
+        depthBarGroup.remove(depthBarGroup.children[0]);
+      }
+
+      // Bids (Green 3D Bars on Left)
+      for (let i = 0; i < 8; i++) {
+        const height = Math.random() * 6 + 1.5;
+        const geo = new THREE.BoxGeometry(0.8, height, 0.8);
+        const mat = new THREE.MeshPhongMaterial({
+          color: 0x10b981,
+          emissive: 0x064e3b,
+          shininess: 80,
+          transparent: true,
+          opacity: 0.85
+        });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set(-8 + i * 1.1, height / 2, 0);
+        depthBarGroup.add(mesh);
+      }
+
+      // Asks (Red 3D Bars on Right)
+      for (let i = 0; i < 8; i++) {
+        const height = Math.random() * 6 + 1.5;
+        const geo = new THREE.BoxGeometry(0.8, height, 0.8);
+        const mat = new THREE.MeshPhongMaterial({
+          color: 0xf43f5e,
+          emissive: 0x881337,
+          shininess: 80,
+          transparent: true,
+          opacity: 0.85
+        });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set(1.2 + i * 1.1, height / 2, 0);
+        depthBarGroup.add(mesh);
+      }
+    }
+
+    function animateSpatialDepth() {
+      requestAnimationFrame(animateSpatialDepth);
+      if (depthBarGroup && !isDepthMouseDown) {
+        depthBarGroup.rotation.y += 0.003;
+      }
+      if (depthRenderer && depthScene && depthCamera) {
+        depthRenderer.render(depthScene, depthCamera);
+      }
+    }
+
+    function resizeSpatialDepthCanvas() {
+      const canvas = document.getElementById('spatialDepthCanvas');
+      if (!canvas || !depthRenderer || !depthCamera) return;
+      const container = canvas.parentElement;
+      const w = container.clientWidth;
+      const h = container.clientHeight;
+      depthCamera.aspect = w / h;
+      depthCamera.updateProjectionMatrix();
+      depthRenderer.setSize(w, h);
+    }
+
+    /* ====================================================================
+       THREE.JS 3D OPEN OUTCRY TRADING PIT
+       ==================================================================== */
+    let pitScene, pitCamera, pitRenderer;
+    let pitTradersGroup = [];
+    let raycaster = new THREE.Raycaster();
+    let mouseVec = new THREE.Vector2();
+
+    function initPitThreeJS() {
+      const canvas = document.getElementById('pitCanvas');
+      if (!canvas) return;
+
+      const container = canvas.parentElement;
+      const w = container.clientWidth || 500;
+      const h = container.clientHeight || 350;
+
+      pitScene = new THREE.Scene();
+      pitCamera = new THREE.PerspectiveCamera(45, w / h, 0.1, 1000);
+      pitCamera.position.set(0, 18, 26);
+      pitCamera.lookAt(0, 0, 0);
+
+      pitRenderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+      pitRenderer.setSize(w, h);
+      pitRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+      // Lighting
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
+      pitScene.add(ambientLight);
+
+      const spotLight = new THREE.SpotLight(0xf2a900, 1.2);
+      spotLight.position.set(0, 30, 0);
+      pitScene.add(spotLight);
+
+      // Build Octagonal Pit Floor Steps
+      buildOctagonalPitFloor();
+
+      // Create 14 Walking Humanoid Trader Avatars
+      buildPitTraders();
+
+      canvas.addEventListener('click', onPitCanvasClick);
+
+      animatePit();
+    }
+
+    function buildOctagonalPitFloor() {
+      const pitGroup = new THREE.Group();
+      
+      // Tiered Step Rings
+      for (let ring = 0; ring < 3; ring++) {
+        const radius = 10 - ring * 2.5;
+        const height = 0.8;
+        const geo = new THREE.CylinderGeometry(radius, radius + 0.5, height, 8);
+        const mat = new THREE.MeshPhongMaterial({
+          color: ring % 2 === 0 ? 0x1e293b : 0x0f172a,
+          emissive: 0x020617,
+          wireframe: false
+        });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.y = ring * -height;
+        pitGroup.add(mesh);
+      }
+
+      pitScene.add(pitGroup);
+    }
+
+    function buildPitTraders() {
+      pitTradersGroup = [];
+      const jacketColors = [0xf2a900, 0x10b981, 0xf43f5e, 0x00a3e0, 0xa855f7];
+
+      for (let i = 0; i < 14; i++) {
+        const traderGroup = new THREE.Group();
+        const color = jacketColors[i % jacketColors.length];
+
+        // Body Cylinder (Replaces CapsuleGeometry)
+        const bodyGeo = new THREE.CylinderGeometry(0.4, 0.4, 1.4, 12);
+        const bodyMat = new THREE.MeshPhongMaterial({ color: color });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = 0.7;
+        traderGroup.add(body);
+
+        // Head Sphere
+        const headGeo = new THREE.SphereGeometry(0.3, 12, 12);
+        const headMat = new THREE.MeshPhongMaterial({ color: 0xffdbac });
+        const head = new THREE.Mesh(headGeo, headMat);
+        head.position.y = 1.6;
+        traderGroup.add(head);
+
+        // Posed Arm (BUY palm inward or SELL palm outward)
+        const isBuySignal = i % 2 === 0;
+        const armGeo = new THREE.BoxGeometry(0.15, 0.7, 0.15);
+        const armMat = new THREE.MeshPhongMaterial({ color: color });
+        const arm = new THREE.Mesh(armGeo, armMat);
+        arm.position.set(isBuySignal ? 0.45 : -0.45, 1.2, 0.2);
+        arm.rotation.z = isBuySignal ? -0.8 : 0.8;
+        traderGroup.add(arm);
+
+        // Position along pit ring steps
+        const angle = (i / 14) * Math.PI * 2;
+        const r = 6.5 + (i % 2) * 2;
+        traderGroup.position.set(Math.cos(angle) * r, 0.2, Math.sin(angle) * r);
+        traderGroup.rotation.y = -angle + Math.PI / 2;
+
+        traderGroup.userData = {
+          id: i + 1,
+          badge: `#${3000 + i * 142}`,
+          role: i % 3 === 0 ? 'Goldman Liquidity Desk' : (i % 2 === 0 ? 'Local Pit Scalper' : 'Treasury Arb Desk'),
+          isBuy: isBuySignal,
+          quote: `${isBuySignal ? 'BUY' : 'SELL'} 25 @ 5842.25`,
+          angle: angle,
+          radius: r
+        };
+
+        pitScene.add(traderGroup);
+        pitTradersGroup.push(traderGroup);
+      }
+    }
+
+    function animatePit() {
+      requestAnimationFrame(animatePit);
+
+      // Walk avatars along concentric ring steps
+      pitTradersGroup.forEach(t => {
+        t.userData.angle += 0.003;
+        const r = t.userData.radius;
+        t.position.x = Math.cos(t.userData.angle) * r;
+        t.position.z = Math.sin(t.userData.angle) * r;
+        t.rotation.y = -t.userData.angle + Math.PI / 2;
+      });
+
+      if (pitRenderer && pitScene && pitCamera) {
+        pitRenderer.render(pitScene, pitCamera);
+      }
+    }
+
+    function onPitCanvasClick(e) {
+      const canvas = document.getElementById('pitCanvas');
+      if (!canvas) return;
+
+      const rect = canvas.getBoundingClientRect();
+      mouseVec.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      mouseVec.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+      raycaster.setFromCamera(mouseVec, pitCamera);
+      const intersects = raycaster.intersectObjects(pitScene.children, true);
+
+      if (intersects.length > 0) {
+        let parentGroup = intersects[0].object.parent;
+        if (parentGroup && parentGroup.userData && parentGroup.userData.id) {
+          const d = parentGroup.userData;
+          selectedTraderForMatch = d;
+
+          document.getElementById('inspectorTraderName').innerText = `Trader #${d.id} (${d.role})`;
+          document.getElementById('inspectorTraderBadge').innerText = `BADGE: ${d.badge} • PIT STEP`;
+          document.getElementById('inspectorTraderRole').innerText = d.role;
+          document.getElementById('inspectorTraderQuote').innerText = d.quote;
+          document.getElementById('inspectorTraderGesture').innerText = d.isBuy ? 'Palm Facing Face (BID)' : 'Palm Facing Pit (OFFER)';
+
+          document.getElementById('traderInspectorModal').classList.remove('hidden');
+          playAudioTone(800, 'sine', 0.1);
+        }
+      }
+    }
+
+    function shoutPitOrder(side) {
+      const p = document.getElementById('pit-shout-price').value;
+      const q = document.getElementById('pit-shout-qty').value;
+
+      playAudioTone(side === 'BUY' ? 700 : 400, 'sawtooth', 0.2);
+      addTapeTrade(p, q, side === 'BUY', true);
+    }
+
+    function matchTraderOrder() {
+      if (selectedTraderForMatch) {
+        document.getElementById('traderInspectorModal').classList.add('hidden');
+        shoutPitOrder(selectedTraderForMatch.isBuy ? 'SELL' : 'BUY');
+      }
+    }
+
+    function resizePitCanvas() {
+      const canvas = document.getElementById('pitCanvas');
+      if (!canvas || !pitRenderer || !pitCamera) return;
+      const container = canvas.parentElement;
+      pitCamera.aspect = container.clientWidth / container.clientHeight;
+      pitCamera.updateProjectionMatrix();
+      pitRenderer.setSize(container.clientWidth, container.clientHeight);
+    }
+
+    /* ====================================================================
+       ANIMATED SHOCKWAVE CONTAGION RIPPLE CANVAS ENGINE
+       ==================================================================== */
+    let shockCanvas, shockCtx;
+    let shockAnimFrameId = null;
+    let shockParticles = [];
+    let shockRipples = [];
+    let shockNodes = {};
+    let mouseHoverNodeKey = null;
+
+    function initShockwaveCanvas() {
+      shockCanvas = document.getElementById('shockCanvas');
+      if (!shockCanvas || !shockCanvas.parentElement) return;
+
+      const container = shockCanvas.parentElement;
+      const dpr = window.devicePixelRatio || 1;
+      const rect = container.getBoundingClientRect();
+
+      shockCanvas.width = rect.width * dpr;
+      shockCanvas.height = rect.height * dpr;
+      shockCanvas.style.width = rect.width + 'px';
+      shockCanvas.style.height = rect.height + 'px';
+
+      shockCtx = shockCanvas.getContext('2d');
+      shockCtx.scale(dpr, dpr);
+
+      shockCanvas.removeEventListener('click', handleShockCanvasClick);
+      shockCanvas.addEventListener('click', handleShockCanvasClick);
+
+      shockCanvas.removeEventListener('mousemove', handleShockCanvasMouseMove);
+      shockCanvas.addEventListener('mousemove', handleShockCanvasMouseMove);
+
+      computeShockwaveImpacts();
+
+      if (!shockAnimFrameId) {
+        animateShockwaveCanvas();
+      }
+    }
+
+    function handleShockCanvasMouseMove(e) {
+      if (!shockCanvas) return;
+      const rect = shockCanvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+
+      let found = null;
+      Object.keys(shockNodes).forEach(key => {
+        const node = shockNodes[key];
+        const dist = Math.hypot(mx - node.x, my - node.y);
+        if (dist <= node.radius + 6) {
+          found = key;
+        }
+      });
+
+      mouseHoverNodeKey = found;
+      shockCanvas.style.cursor = found ? 'pointer' : 'default';
+    }
+
+    function handleShockCanvasClick(e) {
+      if (!shockCanvas) return;
+      const rect = shockCanvas.getBoundingClientRect();
+      const mx = e.clientX - rect.left;
+      const my = e.clientY - rect.top;
+
+      Object.keys(shockNodes).forEach(key => {
+        const node = shockNodes[key];
+        const dist = Math.hypot(mx - node.x, my - node.y);
+        if (dist <= node.radius + 8) {
+          const srcSelect = document.getElementById('shock-source');
+          if (srcSelect) {
+            srcSelect.value = key;
+            triggerMacroShockwave();
+            triggerShockRipple(node.x, node.y, '#a855f7');
+            playAudioTone(880, 'sine', 0.08);
+          }
+        }
+      });
+    }
+
+    function triggerShockRipple(x, y, color) {
+      for (let i = 0; i < 3; i++) {
+        shockRipples.push({
+          x: x,
+          y: y,
+          radius: 10 + i * 15,
+          maxRadius: 240 + i * 40,
+          alpha: 0.9,
+          speed: 3 + i * 1.5,
+          color: color || '#a855f7'
+        });
+      }
+    }
+
+    function applyPresetShock(presetKey) {
+      const presets = {
+        'fed_hike': { source: 'ZN_F', magnitude: -3.5 },
+        'oil_crisis': { source: 'CL_F', magnitude: 12.0 },
+        'tech_dump': { source: 'NQ_F', magnitude: -5.5 }
+      };
+
+      const p = presets[presetKey];
+      if (!p) return;
+
+      activeShock = p;
+      const srcElem = document.getElementById('shock-source');
+      const magElem = document.getElementById('shock-magnitude');
+      if (srcElem) srcElem.value = p.source;
+      if (magElem) magElem.value = p.magnitude;
+
+      triggerMacroShockwave();
+    }
+
+    function triggerMacroShockwave() {
+      const src = document.getElementById('shock-source')?.value || 'ZN_F';
+      const mag = parseFloat(document.getElementById('shock-magnitude')?.value || '-5');
+      activeShock = { source: src, magnitude: mag };
+      computeShockwaveImpacts();
+
+      const epicenterNode = shockNodes[src];
+      if (epicenterNode) {
+        triggerShockRipple(epicenterNode.x, epicenterNode.y, mag >= 0 ? '#10b981' : '#ef4444');
+      }
+      playAudioTone(640, 'sawtooth', 0.12);
+    }
+
+    function resetShockwaveSimulation() {
+      activeShock = { source: 'ZN_F', magnitude: -5.0 };
+      const magElem = document.getElementById('shock-magnitude');
+      if (magElem) magElem.value = -5;
+      triggerMacroShockwave();
+    }
+
+    function computeShockwaveImpacts() {
+      const srcSpec = SHOCK_SENSITIVITIES[activeShock.source];
+      if (!srcSpec || !shockCanvas) return;
+
+      const w = parseFloat(shockCanvas.style.width) || 600;
+      const h = parseFloat(shockCanvas.style.height) || 400;
+
+      const centerX = w / 2;
+      const centerY = h / 2;
+      const radius = Math.min(w, h) * 0.34;
+
+      const keys = Object.keys(Global_SPEC);
+      const angleStep = (Math.PI * 2) / keys.length;
+
+      keys.forEach((k, idx) => {
+        const isEpicenter = k === activeShock.source;
+        let nx = centerX;
+        let ny = centerY;
+
+        if (!isEpicenter) {
+          const angle = idx * angleStep - Math.PI / 2;
+          nx = centerX + Math.cos(angle) * radius;
+          ny = centerY + Math.sin(angle) * radius;
+        }
+
+        const beta = isEpicenter ? 1.0 : (srcSpec.betas[k] || 0.1);
+        const projDelta = isEpicenter ? activeShock.magnitude : (activeShock.magnitude * beta);
+
+        shockNodes[k] = {
+          symbol:Global_SPEC[k].symbol,
+          x: nx,
+          y: ny,
+          radius: isEpicenter ? 26 : 20,
+          isEpicenter: isEpicenter,
+          beta: beta,
+          projDelta: projDelta,
+          color: isEpicenter ? '#a855f7' : (projDelta >= 0 ? '#10b981' : '#ef4444')
+        };
+      });
+
+      shockParticles = [];
+      Object.keys(shockNodes).forEach(k => {
+        if (k !== activeShock.source) {
+          const node = shockNodes[k];
+          const numParticles = Math.min(18, Math.max(6, Math.abs(Math.round(node.projDelta * 2))));
+          for (let i = 0; i < numParticles; i++) {
+            shockParticles.push({
+              targetKey: k,
+              progress: Math.random(),
+              speed: 0.004 + Math.abs(node.projDelta) * 0.0015 + Math.random() * 0.003,
+              size: 2 + Math.random() * 2,
+              color: node.projDelta >= 0 ? '#34d399' : '#f87171'
+            });
+          }
+        }
+      });
+
+      // Update Elasticity Matrix DOM
+      const listElem = document.getElementById('cross-elasticity-list');
+      if (listElem) {
+        let html = '';
+        keys.forEach(key => {
+          if (key === activeShock.source) {
+            html += `
+              <div class="bg-purple-500/20 border border-purple-500/40 p-1.5 rounded-xl flex justify-between items-center text-purple-300 font-bold">
+                <span>${Global_SPEC[key].name} (EPICENTER)</span>
+                <span>${activeShock.magnitude >= 0 ? '+' : ''}${activeShock.magnitude}%</span>
+              </div>
+            `;
+          } else {
+            const beta = srcSpec.betas[key] || 0.1;
+            const projDelta = activeShock.magnitude * beta;
+            html += `
+              <div class="grid grid-cols-3 py-1 border-b border-white/5 items-center px-1">
+                <span class="text-slate-300 font-semibold">${Global_SPEC[key].symbol}</span>
+                <span class="text-center text-slate-400">β:${beta.toFixed(2)}</span>
+                <span class="text-right font-bold ${projDelta >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${projDelta >= 0 ? '+' : ''}${projDelta.toFixed(2)}%</span>
+              </div>
+            `;
+          }
+        });
+        listElem.innerHTML = html;
+      }
+    }
+
+    function animateShockwaveCanvas() {
+      shockAnimFrameId = requestAnimationFrame(animateShockwaveCanvas);
+      if (!shockCanvas || !shockCtx) return;
+
+      const w = parseFloat(shockCanvas.style.width) || 600;
+      const h = parseFloat(shockCanvas.style.height) || 400;
+
+      shockCtx.clearRect(0, 0, w, h);
+
+      // Draw Grid Lines
+      shockCtx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
+      shockCtx.lineWidth = 1;
+      for (let x = 0; x < w; x += 40) {
+        shockCtx.beginPath(); shockCtx.moveTo(x, 0); shockCtx.lineTo(x, h); shockCtx.stroke();
+      }
+      for (let y = 0; y < h; y += 40) {
+        shockCtx.beginPath(); shockCtx.moveTo(0, y); shockCtx.lineTo(w, y); shockCtx.stroke();
+      }
+
+      const epicenterNode = shockNodes[activeShock.source];
+
+      // Draw Expanding Ripples
+      for (let i = shockRipples.length - 1; i >= 0; i--) {
+        const r = shockRipples[i];
+        r.radius += r.speed;
+        r.alpha = Math.max(0, 1 - r.radius / r.maxRadius);
+
+        shockCtx.strokeStyle = r.color;
+        shockCtx.globalAlpha = r.alpha * 0.6;
+        shockCtx.lineWidth = 2;
+        shockCtx.beginPath();
+        shockCtx.arc(r.x, r.y, r.radius, 0, Math.PI * 2);
+        shockCtx.stroke();
+
+        if (r.radius >= r.maxRadius) shockRipples.splice(i, 1);
+      }
+      shockCtx.globalAlpha = 1.0;
+
+      // Draw Connections & Flow Particles
+      if (epicenterNode) {
+        Object.keys(shockNodes).forEach(k => {
+          if (k !== activeShock.source) {
+            const targetNode = shockNodes[k];
+            shockCtx.strokeStyle = targetNode.projDelta >= 0 ? 'rgba(52, 211, 153, 0.4)' : 'rgba(248, 113, 113, 0.4)';
+            shockCtx.lineWidth = 2;
+            shockCtx.beginPath();
+            shockCtx.moveTo(epicenterNode.x, epicenterNode.y);
+            shockCtx.lineTo(targetNode.x, targetNode.y);
+            shockCtx.stroke();
+          }
+        });
+
+        shockParticles.forEach(p => {
+          const targetNode = shockNodes[p.targetKey];
+          if (targetNode) {
+            p.progress += p.speed;
+            if (p.progress >= 1.0) p.progress = 0;
+
+            const px = epicenterNode.x + (targetNode.x - epicenterNode.x) * p.progress;
+            const py = epicenterNode.y + (targetNode.y - epicenterNode.y) * p.progress;
+
+            shockCtx.fillStyle = p.color;
+            shockCtx.beginPath();
+            shockCtx.arc(px, py, p.size, 0, Math.PI * 2);
+            shockCtx.fill();
+          }
+        });
+      }
+
+      // Draw Asset Nodes
+      Object.keys(shockNodes).forEach(k => {
+        const node = shockNodes[k];
+        shockCtx.fillStyle = node.isEpicenter ? '#581c87' : '#0f172a';
+        shockCtx.strokeStyle = node.color;
+        shockCtx.lineWidth = 2;
+
+        shockCtx.beginPath();
+        shockCtx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
+        shockCtx.fill();
+        shockCtx.stroke();
+
+        shockCtx.fillStyle = '#ffffff';
+        shockCtx.font = 'bold 11px "JetBrains Mono"';
+        shockCtx.textAlign = 'center';
+        shockCtx.textBaseline = 'middle';
+        shockCtx.fillText(node.symbol, node.x, node.y - 2);
+
+        const deltaStr = (node.projDelta >= 0 ? '+' : '') + node.projDelta.toFixed(1) + '%';
+        shockCtx.fillStyle = node.projDelta >= 0 ? '#10b981' : '#ef4444';
+        shockCtx.font = 'bold 9px "JetBrains Mono"';
+        shockCtx.fillText(deltaStr, node.x, node.y + 9);
+      });
+    }
+
+    function explainShockwaveWithAI() {
+      openCopilotModal();
+      sendQuickQuery(`Explain cross-asset contagion if ${activeShock.source} shifts ${activeShock.magnitude}%.`);
+    }
+
+    /* ====================================================================
+       EXECUTION, TAPE & POSITIONS ENGINE
+       ==================================================================== */
+    function setOrderSide(side) {
+      currentOrderSide = side;
+      document.getElementById('btn-side-buy').className = side === 'BUY' ? "py-2 rounded-xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/50 font-bold text-xs hover:bg-emerald-500 hover:text-slate-950 transition-all" : "py-2 rounded-xl bg-slate-900 text-slate-400 border border-white/10 font-bold text-xs hover:bg-emerald-500/20 transition-all";
+      document.getElementById('btn-side-sell').className = side === 'SELL' ? "py-2 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/50 font-bold text-xs hover:bg-rose-500 hover:text-slate-950 transition-all" : "py-2 rounded-xl bg-slate-900 text-slate-400 border border-white/10 font-bold text-xs hover:bg-rose-500/20 transition-all";
+    }
+
+    function calcMargin() {
+      const spec = Global_SPEC[currentContractKey];
+      const lots = parseInt(document.getElementById('ord-lots')?.value || '1');
+      if (!spec) return;
+
+      const estMargin = spec.initialMargin * lots;
+      const notional = spec.price * spec.notionalMult * lots;
+
+      const estElem = document.getElementById('est-margin-val');
+      const notionalElem = document.getElementById('est-notional-val');
+
+      if (estElem) estElem.innerText = `$${estMargin.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+      if (notionalElem) notionalElem.innerText = `$${notional.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+    }
+
+    function submitOrder() {
+      const spec = Global_SPEC[currentContractKey];
+      const lots = parseInt(document.getElementById('ord-lots').value);
+      const price = parseFloat(document.getElementById('ord-price').value);
+
+      positions.unshift({
+        id: `POS-${Math.floor(Math.random() * 900 + 100)}`,
+        symbol: spec.symbol,
+        side: currentOrderSide,
+        lots: lots,
+        entry: price,
+        mark: price,
+        pnl: 0.00
+      });
+
+      renderPositionsTable();
+      playAudioTone(currentOrderSide === 'BUY' ? 880 : 440, 'sine', 0.15);
+    }
+
+    function renderPositionsTable() {
+      const tbody = document.getElementById('position-tbody');
+      if (!tbody) return;
+
+      let html = '';
+      let totalPnL = 0;
+
+      positions.forEach((pos, idx) => {
+        totalPnL += pos.pnl;
+        html += `
+          <tr class="hover:bg-white/5 transition-colors">
+            <td class="py-2 text-slate-200 font-bold">${pos.symbol}</td>
+            <td class="py-2 font-bold ${pos.side === 'LONG' ? 'text-emerald-400' : 'text-rose-400'}">${pos.side}</td>
+            <td class="py-2 text-right text-slate-300">${pos.lots}</td>
+            <td class="py-2 text-right text-slate-400">${pos.entry.toFixed(2)}</td>
+            <td class="py-2 text-right text-cyan-300 font-bold">${pos.mark.toFixed(2)}</td>
+            <td class="py-2 text-right font-bold ${pos.pnl >= 0 ? 'text-emerald-400' : 'text-rose-400'}">${pos.pnl >= 0 ? '+' : ''}$${pos.pnl.toFixed(2)}</td>
+            <td class="py-2 text-center">
+              <button onclick="closePosition(${idx})" class="px-2 py-0.5 rounded bg-rose-500/20 hover:bg-rose-500 text-rose-300 hover:text-slate-950 text-[10px] font-bold transition-all">CLOSE</button>
+            </td>
+          </tr>
+        `;
+      });
+
+      tbody.innerHTML = html;
+      const pnlElem = document.getElementById('portfolio-pnl');
+      if (pnlElem) pnlElem.innerText = `${totalPnL >= 0 ? '+' : ''}$${totalPnL.toFixed(2)}`;
+    }
+
+    function closePosition(idx) {
+      positions.splice(idx, 1);
+      renderPositionsTable();
+    }
+
+    function addTapeTrade(price, size, isBuy, isSweep = false) {
+      const tape = document.getElementById('tape-list');
+      if (!tape) return;
+
+      const now = new Date();
+      const timeStr = now.toTimeString().split(' ')[0] + '.' + Math.floor(now.getMilliseconds() / 100);
+
+      const div = document.createElement('div');
+      div.className = `grid grid-cols-4 text-[11px] py-1 border-b border-white/5 items-center ${isBuy ? 'text-emerald-400' : 'text-rose-400'}`;
+      div.innerHTML = `
+        <span class="text-slate-400 font-mono">${timeStr}</span>
+        <span class="text-right font-bold">${parseFloat(price).toFixed(2)}</span>
+        <span class="text-right font-mono">${size}</span>
+        <span class="text-right font-bold text-[9px] px-1 rounded ${isBuy ? 'bg-emerald-500/20' : 'bg-rose-500/20'}">${isSweep ? (isBuy ? 'BID SWEEP' : 'ASK SWEEP') : (isBuy ? 'BUY AGGR' : 'SELL AGGR')}</span>
+      `;
+
+      tape.insertBefore(div, tape.firstChild);
+      if (tape.children.length > 20) tape.removeChild(tape.lastChild);
+
+      playAudioTone(isBuy ? 600 : 350, 'sine', 0.05);
+    }
+
+    /* ====================================================================
+       GEMINI COPILOT INTEGRATION
+       ==================================================================== */
+    function openCopilotModal() { document.getElementById('copilotModal').classList.remove('hidden'); }
+    function closeCopilotModal() { document.getElementById('copilotModal').classList.add('hidden'); }
+
+    function sendQuickQuery(text) {
+      const input = document.getElementById('copilotInput');
+      if (input) {
+        input.value = text;
+        executeCopilot();
+      }
+    }
+
+    function executeCopilot() {
+      const input = document.getElementById('copilotInput');
+      const output = document.getElementById('copilotChatOutput');
+      if (!input || !input.value.trim() || !output) return;
+
+      const q = input.value;
+      input.value = '';
+
+      output.innerHTML += `
+        <div class="p-2.5 rounded-2xl bg-white/10 text-slate-100 text-right ml-8 font-sans">
+          ${q}
+        </div>
+      `;
+
+      // Simulated Gemini AI Answer
+      setTimeout(() => {
+        output.innerHTML += `
+          <div class="p-3 rounded-2xl bg-purple-500/15 border border-purple-500/30 text-purple-200 mr-8 font-sans">
+            <div class="font-bold mb-1 text-purple-300"><i class="fa-solid fa-brain mr-1.5"></i> Gemini Spatial Analysis:</div>
+            <p class="leading-relaxed">Analyzing Level 2/3 Order Flow... Imbalance is currently favoring Bids at 58% concentration around 5,840.00. The 3D Order Depth landscape shows significant sell walls resting at 5,855.00 (+15 ticks above mark).</p>
+          </div>
+        `;
+        output.scrollTop = output.scrollHeight;
+      }, 600);
+    }
+
+    /* ====================================================================
+       INITIALIZATION ON WINDOW LOAD
+       ==================================================================== */
+    window.onload = function() {
+      generateDummyCandles();
+      drawCandleChart();
+      renderDOMLadder();
+      renderPositionsTable();
+      calcMargin();
+
+      // Initialize Three.js 3D Viewports
+      initSpatialDepthThreeJS();
+      initPitThreeJS();
+
+      // Real-time Tick Loop Simulation
+      setInterval(() => {
+        const spec = Global_SPEC[currentContractKey];
+        if (!spec) return;
+
+        const isBuy = Math.random() > 0.48;
+        const delta = (Math.random() * spec.tickSize * 2);
+        spec.price += isBuy ? delta : -delta;
+
+        updateHeaderStats();
+        renderDOMLadder();
+        addTapeTrade(spec.price, Math.floor(Math.random() * 45 + 1), isBuy);
+      }, 1500);
+
+      window.addEventListener('resize', () => {
+        window.requestAnimationFrame(() => {
+          drawCandleChart();
+          resizeSpatialDepthCanvas();
+          resizePitCanvas();
+          if (activeSpace === 'shockwave') initShockwaveCanvas();
+        });
+      });
+    };
+  </script>
+</body>
+</html>

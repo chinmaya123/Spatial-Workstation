@@ -1,0 +1,65 @@
+Xcode
+
+gitignore template for Xcode and Swift projects
+
+build/
+DerivedData/
+*.moved-aside
+*.pbxuser
+!default.pbxuser
+*.mode1v3
+!default.mode1v3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+xcuserdata/
+
+LLDB breakpoint file
+
+*.xccheckout
+*.xcscmblueprint
+
+CocoaPods
+
+Pods/
+*.xcworkspace
+
+Swift Package Manager
+
+.swiftpm/
+.build/
+
+Carthage
+
+Carthage/Build/
+
+Accio
+
+Dependencies/
+.accio/
+
+Fastlane
+
+fastlane/report.xml
+fastlane/Preview.html
+fastlane/screenshots
+fastlane/test_output
+fastlane/fastlane.log
+
+Xcode 10 Derived Data
+
+.derivedData/
+
+App Store Connect API keys
+
+AuthKey_*.p8
+
+Miscellaneous
+
+*.DS_Store
+.netrc
+.idea/
+*.swp
+*.swo
+*~

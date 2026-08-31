@@ -7,10 +7,12 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		337B8F2B3045847400DEF817 /* Readme.md in Resources */ = {isa = PBXBuildFile; fileRef = 337B8F223045847400DEF817 /* Readme.md */; };
 		33DAD729304581580069AA44 /* .gitignore in Resources */ = {isa = PBXBuildFile; fileRef = 33DAD728304581430069AA44 /* .gitignore */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		337B8F223045847400DEF817 /* Readme.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = Readme.md; sourceTree = "<group>"; };
 		33B43D74304028E400CD6E15 /* Spatial Workstation.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Spatial Workstation.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		33DAD728304581430069AA44 /* .gitignore */ = {isa = PBXFileReference; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -53,6 +55,7 @@
 				33DAD728304581430069AA44 /* .gitignore */,
 				33B43D76304028E400CD6E15 /* Spatial Workstation */,
 				33B43D75304028E400CD6E15 /* Products */,
+				337B8F223045847400DEF817 /* Readme.md */,
 			);
 			sourceTree = "<group>";
 		};
@@ -129,6 +132,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				33DAD729304581580069AA44 /* .gitignore in Resources */,
+				337B8F2B3045847400DEF817 /* Readme.md in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

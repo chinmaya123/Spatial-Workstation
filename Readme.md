@@ -86,7 +86,7 @@ Web Audio API: Synthesized procedural sound effects and spatial ambience.
 
 📂 Project Structure
 
-├── Spatial_WorkstationApp.swift    # visionOS App entry point & WindowGroup scene definitions
+├── Spatial_WorkstationApp.swift     # visionOS App entry point & WindowGroup scene definitions
 ├── ContentView.swift                # Native visionOS container, ornaments, and glass styling
 ├── WebViewContainer.swift           # WKWebView UIViewRepresentable with JavaScript message bridge
 ├── index.html                       # Single-file spatial trading workstation (Three.js, Canvas, UI)
